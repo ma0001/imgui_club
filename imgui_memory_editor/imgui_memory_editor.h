@@ -108,16 +108,16 @@ struct MemoryEditor
     {
         // Settings
         Open = true;
-        ReadOnly = false;
+        ReadOnly = true;
         Cols = 16;
-        OptShowOptions = true;
+        OptShowOptions = false;
         OptShowDataPreview = false;
         OptShowHexII = false;
         OptShowAscii = true;
         OptGreyOutZeroes = true;
         OptUpperCaseHex = true;
         OptMidColsCount = 8;
-        OptAddrDigitsCount = 0;
+        OptAddrDigitsCount = 4;
         OptFooterExtraHeight = 0.0f;
         HighlightColor = IM_COL32(255, 255, 255, 50);
         ReadFn = NULL;
@@ -207,7 +207,7 @@ struct MemoryEditor
     }
 
     // Memory Editor contents only
-    void DrawContents(void* mem_data_void, size_t mem_size, size_t base_display_addr = 0x0000)
+    void DrawContents(void* mem_data_void, size_t mem_size, size_t base_display_addr = 0x0000, int max_line = 100)
     {
         if (Cols < 1)
             Cols = 1;
@@ -220,19 +220,20 @@ struct MemoryEditor
         // We begin into our scrolling region with the 'ImGuiWindowFlags_NoMove' in order to prevent click from moving the window.
         // This is used as a facility since our main click detection code doesn't assign an ActiveId so the click would normally be caught as a window-move.
         const float height_separator = style.ItemSpacing.y;
+        const int line_total_count = (int)((mem_size + Cols - 1) / Cols);
         float footer_height = OptFooterExtraHeight;
         if (OptShowOptions)
             footer_height += height_separator + ImGui::GetFrameHeightWithSpacing() * 1;
         if (OptShowDataPreview)
             footer_height += height_separator + ImGui::GetFrameHeightWithSpacing() * 1 + ImGui::GetTextLineHeightWithSpacing() * 3;
-        ImGui::BeginChild("##scrolling", ImVec2(0, -footer_height), false, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoNav);
+        float child_hight = ((line_total_count < max_line) ? line_total_count : max_line) * s.LineHeight;
+        ImGui::BeginChild("##scrolling", ImVec2(0, child_hight), false, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoNav);
         ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
 
         // We are not really using the clipper API correctly here, because we rely on visible_start_addr/visible_end_addr for our scrolling function.
-        const int line_total_count = (int)((mem_size + Cols - 1) / Cols);
         ImGuiListClipper clipper;
         clipper.Begin(line_total_count, s.LineHeight);
 
